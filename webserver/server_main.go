@@ -1,19 +1,15 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
-	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/rs/zerolog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -52,68 +48,6 @@ func init() {
 	}
 }
 
-var indexTemplate = template.Must(template.ParseFiles("./tmpl/index.html"))
-
-// method to fill template with most recent data
-func handleData(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msgf("handler called from %v", r.RemoteAddr)
-
-	measurements := getData()
-	testdata := PageData{
-		Title:   "Sensor Data",
-		Data:    measurements,
-		Updated: time.Now().Format(time.RFC3339),
-	}
-
-	err := indexTemplate.Execute(w, testdata)
-	if err != nil {
-		log.Error().Err(err)
-	}
-}
-
-// method to obtain most recent data from database
-func getData() []Measurement {
-	var measurements = []Measurement{}
-
-	// TODO: handle db client in separate goroutine
-	client := influxdb2.NewClient(cfg.DBurl, cfg.DBtoken)
-	defer client.Close()
-	queryAPI := client.QueryAPI(cfg.DBorg)
-
-	result, err := queryAPI.Query(context.Background(), fmt.Sprintf(
-		`from(bucket: "%v")
-  |> range(start: -1h)
-  |> filter(fn: (r) => r["_measurement"] == "Arbeitszimmer" or r["_measurement"] == "Wohnzimmer")
-  |> tail(n: 1)`, cfg.DBbucket),
-	)
-
-	if err != nil {
-		log.Error().Err(err)
-		return measurements
-	}
-
-	for result.Next() {
-		m := Measurement{
-			Name:  result.Record().Measurement(),
-			Time:  result.Record().Time().In(loc).Format("2006-01-02 15:04:05 MST"),
-			Type:  result.Record().Field(),
-			Value: fmt.Sprintf("%.2f", result.Record().Value()),
-		}
-		if suffix, ok := units[m.Type]; ok {
-			m.Type += ", " + suffix
-		}
-		measurements = append(measurements, m)
-	}
-	if result.Err() != nil {
-		log.Error().Msgf("Query error: %s\n", result.Err().Error())
-	}
-
-	sort.SliceStable(measurements, func(i, j int) bool {
-		return measurements[i].Name < measurements[j].Name
-	})
-	return measurements
-}
-
 var cfg = NewCfg()
 var loc, _ = time.LoadLocation("Europe/Berlin")
 var units = map[string]string{
@@ -142,7 +76,7 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 
-	http.HandleFunc("/", handleData)
+	http.HandleFunc("/", serveData)
 
 	fs := http.FileServer(http.Dir("./assets"))
 	http.Handle("/assets/", http.StripPrefix("/assets", fs))

@@ -95,6 +95,7 @@ func main() {
 	log.Info().Msgf("starting data collector, logging to '%v'", logpath)
 
 	// declare arduinos
+	// TODO: get list of microcontrollers / UDP servers from cfg.yml
 	var arduinos = []arduino{
 		{id: 58, address: "192.168.0.58:16083", last_contact: time.Now().Add(-INTERVAL)},
 		{id: 59, address: "192.168.0.59:16083", last_contact: time.Now().Add(-INTERVAL)},
@@ -123,7 +124,7 @@ func main() {
 	go dataCollector(ctx, arduinos, data, sigDone)
 	go dataParser(ctx, data, msgParserToCsv, sigDone)
 	go handleCSVlog(ctx, logpath, msgParserToCsv, msgCsvToDb, sigDone)
-	go handleDBupload(ctx, msgCsvToDb, sigDone)
+	go handleDBupload(ctx, msgCsvToDb, sigDone) // TODO: make db logger optional via cfg.yml
 
 	fmt.Println("press any key to exit...")
 	fmt.Scanln()
@@ -139,8 +140,9 @@ func main() {
 }
 
 // for rpi:
-// env GOOS=linux GOARCH=arm GOARM=5 go build -o /home/floo/Code/solltIchLueften/datalogger/bin/datalogger_rpi .
-// env GOOS=linux GOARCH=arm GOARM=5 go build -o /home/va6504/Code/Arduino/solltIchLueften/datalogger/bin/datalogger_rpi .
+// env GOOS=linux GOARCH=arm GOARM=5 go build -o /home/va6504/Code/Mixed/fictional-octo-disco/datalogger/bin/datalogger_rpi .
+// env GOOS=linux GOARCH=arm GOARM=5 go build -o /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/datalogger_rpi .
 
-// rm -rf ./log && scp -r /home/floo/Code/solltIchLueften/datalogger/bin/ floo@192.168.0.108:/home/floo/Documents/Go/datalogger
-// rm -rf ./log && scp -r /home/va6504/Code/Arduino/solltIchLueften/datalogger/bin/ floo@192.168.0.108:/home/floo/Documents/Go/datalogger
+// to rpi:
+// scp -r /home/va6504/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.0.108:/home/floo/Documents/Go/datalogger
+// scp -r /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.0.108:/home/floo/Documents/Go/datalogger
