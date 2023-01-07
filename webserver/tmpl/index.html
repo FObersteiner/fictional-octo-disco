@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link href="/assets/style.css" rel="stylesheet" />
+</head>
+
+<body>
+
+    <h1>{{.Title}}</h1>
+
+    <table>
+        <tr>
+            <th>Measurement</th>
+            <th>Time</th>
+            <th> </th>
+            <th>Value</th>
+        </tr>
+        {{range .Data}}
+        <tr>
+            <td>{{.Name}}</td>
+            <td>{{.Time}}</td>
+            <td>{{.Type}}</td>
+            <td>{{.Value}}</td>
+        </tr>
+        {{end}}
+    </table>
+
+    <footer>
+        <p>last refresh: {{.Updated}}</p>
+    </footer>
+
+</body>
+
+</html>
