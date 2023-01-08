@@ -67,8 +67,9 @@ func dataParser(ctx context.Context, data <-chan []byte, msgOut chan<- message, 
 			}
 
 		case <-ctx.Done():
-			log.Debug().Msg("parser closing")
+			log.Debug().Msg("parser ctx: Done !")
 			sigDone <- struct{}{}
+			log.Debug().Msg("parser closing")
 			return
 		}
 	}
@@ -116,12 +117,15 @@ func handleCSVlog(ctx context.Context, logpath string,
 				check(err)
 				log.Debug().Msgf("wrote %v bytes to logfile", n)
 			}
-			// forward to handleDBupload
-			msgOut <- recv
+			if cfg.LogToDB {
+				// forward to handleDBupload
+				msgOut <- recv
+			}
 		case <-ctx.Done():
-			log.Debug().Msg("csv handler closing")
+			log.Debug().Msg("csv handler ctx: Done !")
 			f.Close()
 			sigDone <- struct{}{}
+			log.Debug().Msg("csv handler closing")
 			return
 		}
 	}
@@ -129,6 +133,12 @@ func handleCSVlog(ctx context.Context, logpath string,
 
 // handleDBupload sends data to the database
 func handleDBupload(ctx context.Context, msgIn <-chan message, sigDone chan<- struct{}) {
+	if !cfg.LogToDB {
+		log.Info().Msg("disabled: Logging to influxDB")
+		sigDone <- struct{}{} // will wait here since main won't read from sigDone until stopped
+		log.Debug().Msg("db uploader closing (was inactive)")
+		return
+	}
 	// Create a new client using an InfluxDB server base URL and an authentication token
 	// and set batch size to 20
 	client := influxdb2.NewClientWithOptions(cfg.DBurl, cfg.DBtoken,
@@ -141,10 +151,11 @@ func handleDBupload(ctx context.Context, msgIn <-chan message, sigDone chan<- st
 			log.Debug().Msgf("DB logger received msg %v", recv)
 			writeAPI.WritePoint(recv.ToInfluxPoint())
 		case <-ctx.Done():
-			log.Debug().Msg("db uploader closing")
+			log.Debug().Msg("db uploader ctx: Done !")
 			writeAPI.Flush()
 			client.Close()
 			sigDone <- struct{}{}
+			log.Debug().Msg("db uploader closing")
 			return
 		}
 	}

@@ -14,8 +14,9 @@ import (
 )
 
 type Config struct {
-	LogLevel     string `yaml:"Log_Level"`
-	DataSavePath string `yaml:"Path_Data_Log"`
+	LogLevel     string `yaml:"Log_Level"`     // zerolog logger level
+	DataSavePath string `yaml:"Path_Data_Log"` // where to save csvs
+	LogToDB      bool   `yaml:"Log_to_DB"`
 	DBtoken      string `yaml:"DB_Token"`
 	DBorg        string `yaml:"DB_Org"`
 	DBurl        string `yaml:"DB_Url"`

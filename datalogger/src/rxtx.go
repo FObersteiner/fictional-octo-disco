@@ -24,8 +24,9 @@ func dataCollector(ctx context.Context, devices []arduino, data chan<- []byte, s
 	for { // outer loop: repeatedly query data from devices unless context is cancelled
 		select {
 		case <-ctx.Done():
-			log.Debug().Msg("receiver closing")
+			log.Debug().Msg("data collector ctx: Done !")
 			sigDone <- struct{}{}
+			log.Debug().Msg("data collector closing")
 			return
 		case <-ticker.C:
 			log.Debug().Msg("check devices...")

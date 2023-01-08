@@ -124,7 +124,7 @@ func main() {
 	go dataCollector(ctx, arduinos, data, sigDone)
 	go dataParser(ctx, data, msgParserToCsv, sigDone)
 	go handleCSVlog(ctx, logpath, msgParserToCsv, msgCsvToDb, sigDone)
-	go handleDBupload(ctx, msgCsvToDb, sigDone) // TODO: make db logger optional via cfg.yml
+	go handleDBupload(ctx, msgCsvToDb, sigDone)
 
 	fmt.Println("press any key to exit...")
 	fmt.Scanln()
