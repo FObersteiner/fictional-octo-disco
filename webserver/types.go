@@ -43,7 +43,6 @@ type Measurement struct {
 }
 
 type PageData struct {
-	Title   string
 	Data    []Measurement
 	Updated string
 }

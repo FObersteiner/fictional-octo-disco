@@ -3,6 +3,7 @@ module odisco_webserv
 go 1.19
 
 require (
+	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/influxdata/influxdb-client-go/v2 v2.12.1
 	github.com/rs/zerolog v1.28.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0

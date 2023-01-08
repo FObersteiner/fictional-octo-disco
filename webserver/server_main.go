@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -58,6 +59,19 @@ var units = map[string]string{
 }
 
 func main() {
+	// ctx, cancel := context.WithCancel(context.Background())
+	// capture control-C
+	go func() {
+		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, os.Interrupt)
+		<-sigchan
+		// cancel()
+		log.Info().Msg("program terminated by os.Interrupt")
+		os.Exit(0)
+	}()
+
+	// go makePlots(ctx)
+
 	// can supply path to config via cmd line arg
 	var cfgPath string
 	args := os.Args
@@ -71,17 +85,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(cfg)
 	if strings.ToUpper(cfg.LogLevel) == "INFO" {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 
 	http.HandleFunc("/", serveData)
+	log.Debug().Msg("created server for recent data")
 
+	http.HandleFunc("/plots/test", plotserver)
+	log.Debug().Msg("created server for test plot")
+
+	// css directory
 	fs := http.FileServer(http.Dir("./assets"))
 	http.Handle("/assets/", http.StripPrefix("/assets", fs))
 
+	// // plots directorxs/", http.StripPrefix("/plots", fs))
+
 	log.Info().Msgf("listen & serve at localhost%v", cfg.ServePort)
+
 	err = http.ListenAndServe(cfg.ServePort, nil)
 	if err != nil {
 		log.Error().Err(err)
@@ -91,5 +112,5 @@ func main() {
 // for rpi:
 // env GOOS=linux GOARCH=arm GOARM=5 go build
 
-// scp -r /home/floo/Code/solltIchLueften/webserver/ floo@192.168.0.108:/home/floo/Documents/Go/
-// scp -r /home/va6504/Code/Arduino/solltIchLueften/webserver/ floo@192.168.0.108:/home/floo/Documents/Go/
+// rm -rf ./log && scp -r /home/floo/Code/Mixed/fictional-octo-disco/webserver/ floo@192.168.0.108:/home/floo/Documents/Go/
+// rm -rf ./log && scp -r /home/va6504/Code/Arduino/solltIchLueften/webserver/ floo@192.168.0.108:/home/floo/Documents/Go/

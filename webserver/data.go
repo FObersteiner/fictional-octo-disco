@@ -9,22 +9,29 @@ import (
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/api"
 )
 
 var indexTemplate = template.Must(template.ParseFiles("./tmpl/index.html"))
+
+func queryData(fluxquery string) (*api.QueryTableResult, error) {
+	client := influxdb2.NewClient(cfg.DBurl, cfg.DBtoken)
+	defer client.Close()
+	queryAPI := client.QueryAPI(cfg.DBorg)
+	return queryAPI.Query(context.Background(), fluxquery)
+}
 
 // method to fill template with most recent data
 func serveData(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msgf("handler called from %v", r.RemoteAddr)
 
 	measurements := getRecentData()
-	testdata := PageData{
-		Title:   "Sensor Data",
+	data := PageData{
 		Data:    measurements,
 		Updated: time.Now().Format(time.RFC3339),
 	}
 
-	err := indexTemplate.Execute(w, testdata)
+	err := indexTemplate.Execute(w, data)
 	if err != nil {
 		log.Error().Err(err)
 	}
@@ -34,17 +41,13 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 func getRecentData() []Measurement {
 	var measurements = []Measurement{}
 
-	// TODO: handle db client in separate goroutine
-	client := influxdb2.NewClient(cfg.DBurl, cfg.DBtoken)
-	defer client.Close()
-	queryAPI := client.QueryAPI(cfg.DBorg)
-
-	result, err := queryAPI.Query(context.Background(), fmt.Sprintf(
+	// TODO: measurement names should be taken form config yml
+	result, err := queryData(fmt.Sprintf(
 		`from(bucket: "%v")
   |> range(start: -1h)
   |> filter(fn: (r) => r["_measurement"] == "Arbeitszimmer" or r["_measurement"] == "Wohnzimmer")
-  |> tail(n: 1)`, cfg.DBbucket),
-	)
+  |> tail(n: 1)`,
+		cfg.DBbucket))
 
 	if err != nil {
 		log.Error().Err(err)
@@ -72,5 +75,3 @@ func getRecentData() []Measurement {
 	})
 	return measurements
 }
-
-// TODO: add plotter
