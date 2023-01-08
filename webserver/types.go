@@ -8,12 +8,13 @@ import (
 )
 
 type Config struct {
-	LogLevel  string `yaml:"Log_Level"`
-	ServePort string `yaml:"Serve_Port"`
-	DBtoken   string `yaml:"DB_Token"`
-	DBorg     string `yaml:"DB_Org"`
-	DBurl     string `yaml:"DB_Url"`
-	DBbucket  string `yaml:"DB_Bucket"`
+	LogLevel     string   `yaml:"Log_Level"`
+	ServePort    string   `yaml:"Serve_Port"`
+	DBtoken      string   `yaml:"DB_Token"`
+	DBorg        string   `yaml:"DB_Org"`
+	DBurl        string   `yaml:"DB_Url"`
+	DBbucket     string   `yaml:"DB_Bucket"`
+	Measurements []string `yaml:"Measurements"`
 }
 
 func (c *Config) Load(cfgPath string) error {
