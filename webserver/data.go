@@ -42,19 +42,18 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 func getRecentData() []Measurement {
 	var measurements = []Measurement{}
 
-	// TODO: measurement names should be taken form config yml
 	measurementParts := []string{}
 	for _, m := range cfg.Measurements {
 		measurementParts = append(measurementParts,
 			fmt.Sprintf("r[\"_measurement\"] == \"%v\"", m))
 	}
-	measFilter := strings.Join(measurementParts, " or ")
+	measurementFilter := strings.Join(measurementParts, " or ")
 	result, err := queryData(fmt.Sprintf(
 		`from(bucket: "%v")
   |> range(start: -1h)
   |> filter(fn: (r) => %v)
   |> tail(n: 1)`,
-		cfg.DBbucket, measFilter))
+		cfg.DBbucket, measurementFilter))
 
 	if err != nil {
 		log.Error().Err(err)
