@@ -14,13 +14,14 @@ import (
 )
 
 type Config struct {
-	LogLevel     string `yaml:"Log_Level"`     // zerolog logger level
-	DataSavePath string `yaml:"Path_Data_Log"` // where to save csvs
-	LogToDB      bool   `yaml:"Log_to_DB"`
-	DBtoken      string `yaml:"DB_Token"`
-	DBorg        string `yaml:"DB_Org"`
-	DBurl        string `yaml:"DB_Url"`
-	DBbucket     string `yaml:"DB_Bucket"`
+	LogLevel     string   `yaml:"Log_Level"`     // zerolog logger level
+	DataSavePath string   `yaml:"Path_Data_Log"` // where to save csvs
+	Sources      []Source `yaml:"Sources"`
+	LogToDB      bool     `yaml:"Log_to_DB"`
+	DBtoken      string   `yaml:"DB_Token"`
+	DBorg        string   `yaml:"DB_Org"`
+	DBurl        string   `yaml:"DB_Url"`
+	DBbucket     string   `yaml:"DB_Bucket"`
 }
 
 func (c *Config) Load(cfgPath string) error {
@@ -44,14 +45,25 @@ func NewCfg() *Config {
 	return &Config{}
 }
 
-// arduino represents one micro-controller that should be queried
+// source represents one micro-controller that should be queried
 // for sensor data.
-type arduino struct {
-	id           uint8
-	name         string
-	address      string
+type Source struct {
+	ID           uint8  `yaml:"ID"`
+	Name         string `yaml:"Name"`
+	Address      string `yaml:"Address"`
 	UDPaddress   *net.UDPAddr
-	last_contact time.Time
+	Last_contact time.Time
+}
+
+type Sources []Source
+
+func (srcs Sources) NameFromID(id uint8) string {
+	for _, s := range srcs {
+		if s.ID == id {
+			return s.Name
+		}
+	}
+	return "UNKNOWN"
 }
 
 // message represents the data in a UDP reply from an arduino.

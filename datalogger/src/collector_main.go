@@ -56,11 +56,7 @@ const CHECKINTERVAL = time.Duration(time.Second)
 const CSVSEP = ";"
 
 var cfg = NewCfg()
-
-var id2Name = map[uint8]string{
-	58: "Wohnzimmer",
-	59: "Arbeitszimmer",
-}
+var sources = Sources{}
 
 func main() {
 	// can supply path to config via cmd line arg
@@ -94,23 +90,16 @@ func main() {
 
 	log.Info().Msgf("starting data collector, logging to '%v'", logpath)
 
-	// declare arduinos
-	// TODO: get list of microcontrollers / UDP servers from cfg.yml
-	var arduinos = []arduino{
-		{id: 58, address: "192.168.0.58:16083", last_contact: time.Now().Add(-INTERVAL)},
-		{id: 59, address: "192.168.0.59:16083", last_contact: time.Now().Add(-INTERVAL)},
-	}
-	for i, ard := range arduinos {
-		addr, err := net.ResolveUDPAddr("udp", ard.address)
+	// declare sensor data sources
+	for _, src := range cfg.Sources {
+		addr, err := net.ResolveUDPAddr("udp", src.Address)
 		if err != nil {
 			log.Error().Err(err)
 		}
-		arduinos[i].UDPaddress = addr
-		if name, ok := id2Name[ard.id]; ok {
-			arduinos[i].name = name
-		} else {
-			arduinos[i].name = "UNKNOWN"
-		}
+		fmt.Println(addr)
+		s := Source{Name: src.Name, ID: src.ID, Address: src.Address,
+			UDPaddress: addr, Last_contact: time.Now().Add(-INTERVAL)}
+		sources = append(sources, s)
 	}
 
 	// start data collector and handlers
@@ -121,7 +110,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go dataCollector(ctx, arduinos, data, sigDone)
+	go dataCollector(ctx, sources, data, sigDone)
 	go dataParser(ctx, data, msgParserToCsv, sigDone)
 	go handleCSVlog(ctx, logpath, msgParserToCsv, msgCsvToDb, sigDone)
 	go handleDBupload(ctx, msgCsvToDb, sigDone)

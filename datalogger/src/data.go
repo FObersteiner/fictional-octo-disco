@@ -52,11 +52,12 @@ func dataParser(ctx context.Context, data <-chan []byte, msgOut chan<- message, 
 			err := json.Unmarshal(recv, &msg)
 			check(err)
 			msg.Timestamp = time.Now().UTC()
-			if name, ok := id2Name[msg.ID]; ok {
-				msg.Name = name
-			} else {
-				msg.Name = "UNKNOWN"
-			}
+			msg.Name = sources.NameFromID(msg.ID)
+			// if name, ok := id2Name[msg.ID]; ok {
+			// 	msg.Name = name
+			// } else {
+			// 	msg.Name = "UNKNOWN"
+			// }
 			// verify data is valid; assum invalid if both temperature and rel.Hum == 0
 			if FloatIsClose(float64(msg.Temperature), 0.0, 1e-5) && FloatIsClose(float64(msg.RelHum), 0.0, 1e-5) {
 				log.Error().Msgf("could not parse string '%v'", string(recv))

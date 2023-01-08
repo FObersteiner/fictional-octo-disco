@@ -7,7 +7,7 @@ import (
 )
 
 // dataCollector pings Arduinos and forwards data if received
-func dataCollector(ctx context.Context, devices []arduino, data chan<- []byte, sigDone chan<- struct{}) {
+func dataCollector(ctx context.Context, devices []Source, data chan<- []byte, sigDone chan<- struct{}) {
 	var buf = make([]byte, 512)
 
 	// set up UDP socket
@@ -31,12 +31,12 @@ func dataCollector(ctx context.Context, devices []arduino, data chan<- []byte, s
 		case <-ticker.C:
 			log.Debug().Msg("check devices...")
 			for i, dev := range devices {
-				log.Debug().Msgf("check %v", dev.name)
-				if dev.last_contact.After(time.Now().Add(-INTERVAL + CHECKINTERVAL)) {
+				log.Debug().Msgf("check %v", dev.Name)
+				if dev.Last_contact.After(time.Now().Add(-INTERVAL + CHECKINTERVAL)) {
 					// if last contact was within INTERVAL, we can just continue
 					continue
 				}
-				log.Debug().Msgf("query %v", dev.name)
+				log.Debug().Msgf("query %v", dev.Name)
 				conn, err := net.DialUDP("udp", laddr, dev.UDPaddress)
 				if err != nil {
 					log.Error().Err(err)
@@ -53,7 +53,7 @@ func dataCollector(ctx context.Context, devices []arduino, data chan<- []byte, s
 					log.Error().Err(err)
 					continue // skip to next device if we cannot send
 				}
-				log.Debug().Msgf("wrote %v bytes to %v", n, dev.address)
+				log.Debug().Msgf("wrote %v bytes to %v", n, dev.Address)
 
 				// now read
 				n, err = conn.Read(buf)
@@ -61,7 +61,7 @@ func dataCollector(ctx context.Context, devices []arduino, data chan<- []byte, s
 					log.Debug().Msgf("received %v", string(buf[:n]))
 					log.Debug().Msg("forwarding bytes...")
 					// update last_contact
-					devices[i].last_contact = time.Now()
+					devices[i].Last_contact = time.Now()
 					// forward data
 					data <- buf[:n]
 					continue
@@ -69,7 +69,7 @@ func dataCollector(ctx context.Context, devices []arduino, data chan<- []byte, s
 					log.Error().Err(err)
 				}
 				// if we reach this point, conn.Read did not return anything
-				log.Error().Msgf("no response from %v, %v bytes received", dev.name, n)
+				log.Error().Msgf("no response from %v, %v bytes received", dev.Name, n)
 			}
 		}
 	}
