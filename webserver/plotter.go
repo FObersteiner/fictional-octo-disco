@@ -12,6 +12,7 @@ import (
 var (
 	itemCntLine = 6
 	fruits      = []string{"Apple", "Banana", "Peach ", "Lemon", "Pear", "Cherry"}
+	letters     = []string{"A", "B", "C", "D", "E", "F"}
 )
 
 func generateLineItems() []opts.LineData {
@@ -195,6 +196,8 @@ func lineMulti() *charts.Line {
 		AddSeries("Category  B", generateLineItems()).
 		AddSeries("Category  C", generateLineItems()).
 		AddSeries("Category  D", generateLineItems())
+
+	line.SetXAxis(letters).AddSeries("Second X Test", generateLineItems())
 	return line
 }
 
