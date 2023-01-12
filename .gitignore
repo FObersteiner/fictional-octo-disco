@@ -37,5 +37,6 @@ config.yml
 
 # testing
 TESTDATA/
+db.csv
 log/
 *.log
