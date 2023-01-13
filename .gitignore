@@ -34,6 +34,7 @@ settings.json
 # secrets
 arduino_secrets.h
 config.yml
+config.toml
 
 # testing
 TESTDATA/
