@@ -32,7 +32,7 @@ app.layout = html.Div(
         html.Div(
             [
                 html.H1(children="Mehr Daten !"),
-                html.Label("Letzte Abfrage:"),
+                html.Label("Letzte Werte:"),
                 html.Div(id="output_table", children=[]),
                 html.Button(
                     "Tabelle akualisieren",
@@ -44,11 +44,12 @@ app.layout = html.Div(
         ),
         html.Div(
             [
+                html.H2(children="Plots !"),
                 html.Button(
                     "Plots akualisieren",
                     id="refresh_plot",
                     n_clicks=0,
-                    style={"margin-top": 50, "margin-bottom": 15},
+                    style={"margin-top": 5, "margin-bottom": 15},
                 ),
                 dcc.Dropdown(
                     id="timeframe",
@@ -71,12 +72,10 @@ app.layout.children += [html.Div([dcc.Graph(id=f"plot_{p}")]) for p in params]
 
 
 @app.callback(
-    # [Output("time-series-chart1", "figure"), Output("time-series-chart2", "figure")],
     [Output(f"plot_{p}", "figure") for p in params],
     [Input("refresh_plot", "n_clicks"), Input("timeframe", "value")],
 )
 def display_time_series(n, timeframe):
-    print(n, timeframe)
     meas_filter = (
         f'r["_measurement"] == "{measurements[0]}"'
         if len(measurements) == 0
@@ -118,7 +117,7 @@ def display_time_series(n, timeframe):
                 bgcolor="rgba(255,255,255,0.7)",
             ),
             # xaxis=dict(tickformat="%H:%M"),
-            margin=dict(l=40, r=40, t=50, b=40),
+            margin=dict(l=55, r=40, t=80, b=80),
             title_text=title,
             template=cfg["app"]["theme"],
         )
