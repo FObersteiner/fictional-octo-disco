@@ -13,12 +13,6 @@ import plotly.express as px
 
 from plotly.subplots import make_subplots
 
-# import plotly.graph_objects as go
-
-# TODO table: color for each source
-
-# TODO plots: color for each source
-# TODO plots: color set from config
 
 # TODO plots: yrange larger for outdoor T
 
@@ -189,19 +183,20 @@ def update_table(n_clicks):
             style_data_conditional=[
                 {
                     "if": {"filter_query": "{{Wo}} = {}".format(m)},
-                    "background-color": colors[i],
+                    # "background-color": colors[i],
+                    "color": colors[i],
                 }
                 for i, m in enumerate(measurements)
             ],
             style_header={
                 "backgroundColor": "rgb(210, 210, 210)",
                 "color": "black",
-                "font_size": "16px",
+                "font_size": "14px",
                 "fontWeight": "bold",
                 "border": "2px solid black",
             },
             style_data={
-                "color": "black",
+                # "color": "black",
                 "backgroundColor": "white",
                 "font_size": "14px",
                 "fontWeight": "bold",
