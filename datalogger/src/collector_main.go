@@ -133,5 +133,5 @@ func main() {
 // env GOOS=linux GOARCH=arm GOARM=5 go build -o /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/datalogger_rpi .
 
 // to rpi:
-// scp -r /home/va6504/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.0.108:/home/floo/Documents/Go/datalogger
-// scp -r /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.0.108:/home/floo/Documents/Go/datalogger
+// scp -r /home/va6504/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.0.107:/home/floo/Documents/Go/datalogger
+// scp -r /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.0.107:/home/floo/Documents/Go/datalogger
