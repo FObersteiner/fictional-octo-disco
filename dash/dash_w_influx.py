@@ -15,10 +15,20 @@ from plotly.subplots import make_subplots
 
 # import plotly.graph_objects as go
 
-colors = px.colors.qualitative.Plotly
+# TODO table: color for each source
+
+# TODO plots: color for each source
+# TODO plots: color set from config
+
+# TODO plots: yrange larger for outdoor T
 
 with open("config.toml", "rb") as fp:
     cfg = toml.load(fp)
+
+try:
+    colors = getattr(px.colors.qualitative, cfg["app"]["colors"])
+except AttributeError:
+    colors = px.colors.qualitative.Plotly
 
 url = cfg["db"]["url"]
 token = cfg["db"]["token"]
@@ -107,7 +117,7 @@ def display_time_series(n, timeframe):
                     mode="lines",
                     name=name,
                     secondary_y=name == "Draussen",
-                    line=dict(color=colors[color_idx % len(colors)]),
+                    line=dict(color=colors[idx_meas % len(colors)]),
                 )
                 color_idx += 1
 
@@ -123,7 +133,7 @@ def display_time_series(n, timeframe):
             # xaxis=dict(tickformat="%H:%M"),
             margin=dict(l=55, r=40, t=80, b=80),
             title_text=title,
-            template=cfg["app"]["theme"],
+            template=cfg["app"]["plotly_theme"],
         )
         if (ylabel := cfg["units"].get(p)) is not None:
             fig.update_yaxes(title_text=f"<b>{ylabel}</b>", secondary_y=False)
@@ -176,15 +186,25 @@ def update_table(n_clicks):
             style_cell_conditional=[
                 {"if": {"column_id": c}, "textAlign": "left"} for c in ["Wo", "Wann"]
             ],
+            style_data_conditional=[
+                {
+                    "if": {"filter_query": "{{Wo}} = {}".format(m)},
+                    "background-color": colors[i],
+                }
+                for i, m in enumerate(measurements)
+            ],
             style_header={
                 "backgroundColor": "rgb(210, 210, 210)",
                 "color": "black",
+                "font_size": "16px",
                 "fontWeight": "bold",
                 "border": "2px solid black",
             },
             style_data={
                 "color": "black",
                 "backgroundColor": "white",
+                "font_size": "14px",
+                "fontWeight": "bold",
                 "border": "1px solid black",
             },
         ),
