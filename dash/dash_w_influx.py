@@ -1,3 +1,8 @@
+import warnings
+from influxdb_client.client.warnings import MissingPivotFunction
+
+warnings.simplefilter("ignore", MissingPivotFunction)
+
 import influxdb_client
 from dash import Dash, html, dcc, Input, Output, dash_table
 
@@ -6,11 +11,11 @@ import tomli as toml
 
 import plotly.express as px
 
-# from plotly.subplots import make_subplots
-import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
-# from matplotlib import colors as mcolors
-# colors = list(mcolors.CSS4_COLORS.keys())
+# import plotly.graph_objects as go
+
+colors = px.colors.qualitative.Plotly
 
 with open("config.toml", "rb") as fp:
     cfg = toml.load(fp)
@@ -21,7 +26,6 @@ org = cfg["db"]["org"]
 bucket = cfg["db"]["bucket"]
 measurements = cfg["db"]["measurements"]
 params = cfg["app"]["parameters"]
-
 
 client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
 
@@ -55,8 +59,8 @@ app.layout = html.Div(
                     id="timeframe",
                     options=[
                         {"label": "letzte Stunde", "value": "-1h"},
-                        {"label": "-3 Stunden", "value": "-3h"},
-                        {"label": "-24 Stunden", "value": "-1d"},
+                        {"label": "letzten 3 Stunden", "value": "-3h"},
+                        {"label": "letzter Tag", "value": "-1d"},
                         {"label": "letzte Woche", "value": "-1w"},
                     ],
                     value="-1h",
@@ -84,29 +88,29 @@ def display_time_series(n, timeframe):
 
     query = f"""from(bucket: "{bucket}")
      |> range(start: {timeframe})
-     |> filter(fn: (r) => {meas_filter})
-     |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")"""
+     |> filter(fn: (r) => {meas_filter})"""
+    # |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")"""
 
-    dfs = client.query_api().query_data_frame(org=org, query=query)
-
-    if not isinstance(dfs, list):  # might only be one df returned
-        dfs = [dfs]
-
-    for df in dfs:
-        df["_time"] = pd.to_datetime(df["_time"]).dt.tz_convert("Europe/Berlin")
+    data = client.query_api().query_data_frame(org=org, query=query)
+    data["_time"] = pd.to_datetime(data["_time"]).dt.tz_convert("Europe/Berlin")
 
     figs = []
+    color_idx = 0
     for idx_param, p in enumerate(params):
-        fig = go.Figure()
-        for idx_meas, df in enumerate(dfs):
-            if p in df.columns:
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        for idx_meas, (name, df) in enumerate(data.groupby("_measurement")):
+            if p in df._field.values:
+                m = df._field.values == p
                 fig.add_scatter(
-                    x=df["_time"],
-                    y=df[p],
+                    x=df["_time"][m],
+                    y=df["_value"][m],
                     mode="lines",
-                    name=df["_measurement"][0],
-                    # line=dict(color=colors[idx_param + idx_meas]),
+                    name=name,
+                    secondary_y=name == "Draussen",
+                    line=dict(color=colors[color_idx % len(colors)]),
                 )
+                color_idx += 1
+
         title = p if (longname := cfg["long_names"].get(p)) is None else longname
         fig.update_layout(
             legend=dict(
@@ -122,7 +126,8 @@ def display_time_series(n, timeframe):
             template=cfg["app"]["theme"],
         )
         if (ylabel := cfg["units"].get(p)) is not None:
-            fig.update_yaxes(title_text=f"<b>{ylabel}</b>")
+            fig.update_yaxes(title_text=f"<b>{ylabel}</b>", secondary_y=False)
+            fig.update_yaxes(title_text="(draussen)", secondary_y=True)
         figs.append(fig)
 
     figs[-1].update_xaxes(title_text="<b>Zeit</b>")
@@ -144,30 +149,24 @@ def update_table(n_clicks):
         if len(measurements) == 0
         else " or ".join(f'r["_measurement"] == "{m}"' for m in measurements)
     )
+
     query = f"""from(bucket: "{bucket}")
     |> range(start: -5m)
     |> tail(n: 1)
-    |> filter(fn: (r) => {meas_filter})
-    |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-    """
+    |> filter(fn: (r) => {meas_filter})"""
+    # |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")"""
 
-    dfs = client.query_api().query_data_frame(org=org, query=query)
-    if not isinstance(dfs, list):
-        dfs = [dfs]
+    data = client.query_api().query_data_frame(org=org, query=query)
+    data["_time"] = pd.to_datetime(data["_time"]).dt.tz_convert("Europe/Berlin")
 
     d = {"Wo": [], "Wann": [], "Was": [], "Wert": []}
-    params = ("T", "rH", "aH", "p")
-    for df in dfs:
+    for name, df in data.groupby("_measurement"):
         for p in params:
-            if p in df.columns:
-                d["Wo"].append(df["_measurement"][0])
-                d["Wann"].append(
-                    pd.to_datetime(df["_time"])
-                    .dt.tz_convert("Europe/Berlin")
-                    .dt.strftime("%d.%m.%Y %H:%M:%S")[0]
-                )
+            if p in df._field.values:
+                d["Wo"].append(name)  # df["_measurement"][0])
+                d["Wann"].append(df["_time"].iloc[0].strftime("%d.%m.%Y %H:%M:%S"))
                 d["Was"].append(p)
-                d["Wert"].append(df[p][0].round(2))
+                d["Wert"].append(round((df["_value"][df["_field"] == p]).iloc[0], 2))
 
     df = pd.DataFrame(d)
     container = (
