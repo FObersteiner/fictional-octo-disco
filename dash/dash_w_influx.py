@@ -14,8 +14,6 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 
 
-# TODO plots: yrange larger for outdoor T
-
 with open("config.toml", "rb") as fp:
     cfg = toml.load(fp)
 
@@ -95,14 +93,18 @@ def display_time_series(n, timeframe):
      |> filter(fn: (r) => {meas_filter})"""
     # |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")"""
 
+    # pivot does not work correctly for more than two parameters
+    # bug in 'query_data_frame' ?
+
     data = client.query_api().query_data_frame(org=org, query=query)
     data["_time"] = pd.to_datetime(data["_time"]).dt.tz_convert("Europe/Berlin")
 
     figs = []
-    color_idx = 0
-    for idx_param, p in enumerate(params):
+    for _, p in enumerate(params):  # loop parameters
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        for idx_meas, (name, df) in enumerate(data.groupby("_measurement")):
+        for idx_meas, (name, df) in enumerate(
+            data.groupby("_measurement")
+        ):  # loop data sources
             if p in df._field.values:
                 m = df._field.values == p
                 fig.add_scatter(
@@ -110,11 +112,9 @@ def display_time_series(n, timeframe):
                     y=df["_value"][m],
                     mode="lines",
                     name=name,
-                    secondary_y=name == "Draussen",
+                    secondary_y=name == "Draussen" and p == "T",
                     line=dict(color=colors[idx_meas % len(colors)]),
                 )
-                color_idx += 1
-
         title = p if (longname := cfg["long_names"].get(p)) is None else longname
         fig.update_layout(
             legend=dict(
@@ -124,7 +124,6 @@ def display_time_series(n, timeframe):
                 x=0.01,
                 bgcolor="rgba(255,255,255,0.7)",
             ),
-            # xaxis=dict(tickformat="%H:%M"),
             margin=dict(l=55, r=40, t=80, b=80),
             title_text=title,
             template=cfg["app"]["plotly_theme"],
@@ -132,6 +131,7 @@ def display_time_series(n, timeframe):
         if (ylabel := cfg["units"].get(p)) is not None:
             fig.update_yaxes(title_text=f"<b>{ylabel}</b>", secondary_y=False)
             fig.update_yaxes(title_text="(draussen)", secondary_y=True)
+
         figs.append(fig)
 
     figs[-1].update_xaxes(title_text="<b>Zeit</b>")
@@ -189,16 +189,15 @@ def update_table(n_clicks):
                 for i, m in enumerate(measurements)
             ],
             style_header={
-                "backgroundColor": "rgb(210, 210, 210)",
+                "backgroundColor": "white",
                 "color": "black",
                 "font_size": "14px",
                 "fontWeight": "bold",
                 "border": "2px solid black",
             },
             style_data={
-                # "color": "black",
                 "backgroundColor": "white",
-                "font_size": "14px",
+                "font_size": "13px",
                 "fontWeight": "bold",
                 "border": "1px solid black",
             },
