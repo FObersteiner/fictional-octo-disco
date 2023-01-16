@@ -1,3 +1,4 @@
+import math
 import warnings
 from influxdb_client.client.warnings import MissingPivotFunction
 
@@ -77,11 +78,57 @@ app.layout = html.Div(
 app.layout.children += [html.Div([dcc.Graph(id=f"plot_{p}")]) for p in params]
 
 
+def get_ranges(data, params):
+    """Plot y-ranges"""
+    r = {}
+    for p in params:
+        if p == "T":  # T: draussen ist auf zweiter y-Achse
+            m = (data["_field"] == p) & (data["_measurement"] == "Draussen")
+            try:
+                r[p + "_draussen"] = [
+                    math.floor(data["_value"][m].min()),
+                    math.ceil(data["_value"][m].max()),
+                ]
+            except ValueError:
+                r[p + "_draussen"] = [0, 0]
+            m = (data["_field"] == p) & (data["_measurement"] != "Draussen")
+            try:
+                r[p] = [
+                    math.floor(data["_value"][m].min()),
+                    math.ceil(data["_value"][m].max()),
+                ]
+            except ValueError:
+                r[p] = [0, 0]
+        else:
+            m = data["_field"] == p
+            try:
+                r[p] = [
+                    math.floor(data["_value"][m].min()),
+                    math.ceil(data["_value"][m].max()),
+                ]
+            except ValueError:
+                r[p] = [0, 0]
+            r[p + "_draussen"] = r[p]  # selbe Range für drinnen und draussen
+
+        if p in ("p", "rH"):
+            r[p + "_draussen"] = [r[p + "_draussen"][0] - 1, r[p + "_draussen"][1] + 1]
+            r[p] = [r[p][0] - 1, r[p][1] + 1]
+        if p in ("T",):
+            r[p + "_draussen"] = [
+                r[p + "_draussen"][0] - 0.5,
+                r[p + "_draussen"][1] + 0.5,
+            ]
+            r[p] = [r[p][0] - 0.5, r[p][1] + 0.5]
+
+    return r
+
+
 @app.callback(
     [Output(f"plot_{p}", "figure") for p in params],
     [Input("refresh_plot", "n_clicks"), Input("timeframe", "value")],
 )
 def display_time_series(n, timeframe):
+    """Plots ?!"""
     meas_filter = (
         f'r["_measurement"] == "{measurements[0]}"'
         if len(measurements) == 0
@@ -98,6 +145,8 @@ def display_time_series(n, timeframe):
 
     data = client.query_api().query_data_frame(org=org, query=query)
     data["_time"] = pd.to_datetime(data["_time"]).dt.tz_convert("Europe/Berlin")
+
+    ranges = get_ranges(data, params)
 
     figs = []
     for _, p in enumerate(params):  # loop parameters
@@ -129,8 +178,12 @@ def display_time_series(n, timeframe):
             template=cfg["app"]["plotly_theme"],
         )
         if (ylabel := cfg["units"].get(p)) is not None:
-            fig.update_yaxes(title_text=f"<b>{ylabel}</b>", secondary_y=False)
-            fig.update_yaxes(title_text="(draussen)", secondary_y=True)
+            fig.update_yaxes(
+                range=ranges[p], title_text=f"<b>{ylabel}</b>", secondary_y=False
+            )
+            fig.update_yaxes(
+                range=ranges[p + "_draussen"], title_text="(draussen)", secondary_y=True
+            )
 
         figs.append(fig)
 
@@ -148,6 +201,7 @@ def display_time_series(n, timeframe):
     ],
 )
 def update_table(n_clicks):
+    """Tabelle !"""
     meas_filter = (
         f'r["_measurement"] == "{measurements[0]}"'
         if len(measurements) == 0
