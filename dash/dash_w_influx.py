@@ -170,8 +170,10 @@ def update_table(n_clicks):
                 d["Wo"].append(name)  # df["_measurement"][0])
                 d["Wann"].append(df["_time"].iloc[0].strftime("%d.%m.%Y %H:%M:%S"))
                 d["Was"].append(p)
-                d["Wert"].append(round((df["_value"][df["_field"] == p]).iloc[0], 2))
-
+                d["Wert"].append(
+                    f"%{cfg['unit_formats'][p]}"
+                    % (df["_value"][df["_field"] == p]).iloc[0]
+                )
     df = pd.DataFrame(d)
     container = (
         dash_table.DataTable(
