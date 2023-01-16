@@ -29,27 +29,22 @@ WiFiUDP Udp;
 
 // setup checks that the sensors are there and connects to specified WiFi
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
+  // pinMode(LED_BUILTIN, OUTPUT);
+  // digitalWrite(LED_BUILTIN, LOW);
   // ~~~~~ Serial Coms and Sensors ~~~~~
   Serial.begin(115200);
-
-  //  // remove for testing without USB:
-  //  while (!Serial) {
-  //    ; // wait for serial port to connect. Needed for native USB port only
-  //  }
 
   Serial.println("Connecting to AHT20 + LPS22 sensors");
   if (!aht.begin()) {
     Serial.println("Could not find AHT - Check wiring");
-    while (1) delay(10);
+    while (1) delay(1000);
   }
   Serial.println("AHT20 found");
 
   if (!lps.begin_I2C()) {
     Serial.println("Could not find LPS - Check wiring");
     while (1) {
-      delay(10);
+      delay(1000);
     }
   }
   Serial.println("LPS22 found");
@@ -70,13 +65,13 @@ void setup() {
 
   // set IP and attempt to connect to WiFi network:
   WiFi.config(ip);
-  WiFi.setHostname("OutsideArduino");
+  // WiFi.setHostname("OutsideArduino");
 
   while (status != WL_CONNECTED) {
     Serial.print("Connecting to SSID: ");
     Serial.println(ssid);
     status = WiFi.begin(ssid, pass);
-    delay(10000);
+    delay(1000);
   }
 
   Serial.println("Connected to WiFi");
@@ -84,7 +79,7 @@ void setup() {
 
   Udp.begin(udpPort);
   Serial.println("\nUDP server ready...");
-  digitalWrite(LED_BUILTIN, HIGH);
+  // digitalWrite(LED_BUILTIN, HIGH);
 }
 
 
@@ -118,7 +113,7 @@ void loop() {
     Serial.println("Contents:");
     Serial.println(packetBuffer);
 
-    digitalWrite(LED_BUILTIN, LOW);
+    // digitalWrite(LED_BUILTIN, LOW);
     refreshSensorData();
     json = makeJSON();
 
@@ -137,7 +132,7 @@ void loop() {
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
     Udp.write(replyBuffer);
     Udp.endPacket();
-    digitalWrite(LED_BUILTIN, HIGH);
+    // digitalWrite(LED_BUILTIN, HIGH);
   }
 
   delay(100);

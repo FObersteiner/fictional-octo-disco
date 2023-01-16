@@ -13,22 +13,22 @@
 Adafruit_AHTX0 aht;
 
 int status = WL_DISCONNECTED;
-char ssid[] = SECRET_SSID; // login info from arduino_secrets.h
+char ssid[] = SECRET_SSID;  // login info from arduino_secrets.h
 char pass[] = SECRET_PASS;
 
 int last_ip_octet = 59;
-IPAddress ip(192, 168, 0, last_ip_octet); // fix IP address
-unsigned int udpPort = 16083; // port for UDP communication
+IPAddress ip(192, 168, 0, last_ip_octet);  // fix IP address
+unsigned int udpPort = 16083;              // port for UDP communication
 
-char packetBuffer[128]; // buffer to hold incoming packet
-char replyBuffer[128]; // buffer for the string to send back
+char packetBuffer[128];  // buffer to hold incoming packet
+char replyBuffer[128];   // buffer for the string to send back
 WiFiUDP Udp;
 
 
 // setup checks that the sensors are there and connects to specified WiFi
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
+  // pinMode(LED_BUILTIN, OUTPUT);
+  // digitalWrite(LED_BUILTIN, LOW);
 
   // ~~~~~ Serial Coms and Sensors ~~~~~
   Serial.begin(115200);
@@ -39,9 +39,9 @@ void setup() {
   //  }
 
   Serial.println("Connecting to AHT20 sensor");
-  if (! aht.begin()) {
+  if (!aht.begin()) {
     Serial.println("Could not find AHT - Check wiring");
-    while (1) delay(10);
+    while (1) delay(1000);
   }
   Serial.println("AHT20 found");
 
@@ -49,7 +49,8 @@ void setup() {
   if (WiFi.status() == WL_NO_MODULE) {
     Serial.println("Communication with WiFi module failed!");
     // don't continue
-    while (true);
+    while (true)
+      ;
   }
 
   String fv = WiFi.firmwareVersion();
@@ -65,7 +66,7 @@ void setup() {
     Serial.print("Connecting to SSID: ");
     Serial.println(ssid);
     status = WiFi.begin(ssid, pass);
-    delay(10000);
+    delay(1000);
   }
 
   Serial.println("Connected to WiFi");
@@ -73,7 +74,7 @@ void setup() {
 
   Udp.begin(udpPort);
   Serial.println("UDP server ready...");
-  digitalWrite(LED_BUILTIN, HIGH);
+  // digitalWrite(LED_BUILTIN, HIGH);
 }
 
 
@@ -107,7 +108,7 @@ void loop() {
     Serial.println("Contents:");
     Serial.println(packetBuffer);
 
-    digitalWrite(LED_BUILTIN, LOW);
+    // digitalWrite(LED_BUILTIN, LOW);
     refreshSensorData();
     json = makeJSON();
 
@@ -115,10 +116,10 @@ void loop() {
     Serial.println(json);
     jsonLen = json.length();
     // clear replyBuffer
-    for ( int i = 0; i < sizeof(replyBuffer);  ++i )
+    for (int i = 0; i < sizeof(replyBuffer); ++i)
       replyBuffer[i] = (char)0;
     // fill replyBuffer with JSON
-    for (int i = 0; i < jsonLen; i++ ) {
+    for (int i = 0; i < jsonLen; i++) {
       replyBuffer[i] = json[i];
     }
 
@@ -126,11 +127,10 @@ void loop() {
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
     Udp.write(replyBuffer);
     Udp.endPacket();
-    digitalWrite(LED_BUILTIN, HIGH);
+    // digitalWrite(LED_BUILTIN, HIGH);
   }
 
   delay(100);
-
 }
 
 
@@ -145,7 +145,6 @@ void refreshSensorData() {
 
   // calculate abs. humidity based on Magnus-Tetens equation
   s.aH = (6.1094 * exp((17.625 * s.T_aht20) / (s.T_aht20 + 243.5)) * s.rH * 2.1674) / (273.15 + s.T_aht20);
-
 }
 
 
