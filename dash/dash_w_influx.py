@@ -149,22 +149,32 @@ def display_time_series(n, timeframe):
     ranges = get_ranges(data, params)
 
     figs = []
-    for _, p in enumerate(params):  # loop parameters
+
+    for p in params:  # loop parameters
+
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        for idx_meas, (name, df) in enumerate(
-            data.groupby("_measurement")
-        ):  # loop data sources
+
+        for idx_meas, m in enumerate(measurements):
+            w_df = data["_measurement"] == m
+
+            if not w_df.any():  # no data for defined measurement?
+                continue
+
+            df = data[w_df]
+
             if p in df._field.values:
-                m = df._field.values == p
+                m_p = df._field.values == p
                 fig.add_scatter(
-                    x=df["_time"][m],
-                    y=df["_value"][m],
+                    x=df["_time"][m_p],
+                    y=df["_value"][m_p],
                     mode="lines",
-                    name=name,
-                    secondary_y=name == "Draussen" and p == "T",
+                    name=m,
+                    secondary_y=m == "Draussen" and p == "T",
                     line=dict(color=colors[idx_meas % len(colors)]),
                 )
+
         title = p if (longname := cfg["long_names"].get(p)) is None else longname
+
         fig.update_layout(
             legend=dict(
                 yanchor="top",
@@ -177,6 +187,7 @@ def display_time_series(n, timeframe):
             title_text=title,
             template=cfg["app"]["plotly_theme"],
         )
+
         if (ylabel := cfg["units"].get(p)) is not None:
             fig.update_yaxes(
                 range=ranges[p], title_text=f"<b>{ylabel}</b>", secondary_y=False
@@ -200,7 +211,7 @@ def display_time_series(n, timeframe):
         Input("refresh_table", "n_clicks"),
     ],
 )
-def update_table(n_clicks):
+def update_table(_):
     """Tabelle !"""
     meas_filter = (
         f'r["_measurement"] == "{measurements[0]}"'
@@ -218,10 +229,14 @@ def update_table(n_clicks):
     data["_time"] = pd.to_datetime(data["_time"]).dt.tz_convert("Europe/Berlin")
 
     d = {"Wo": [], "Wann": [], "Was": [], "Wert": []}
-    for name, df in data.groupby("_measurement"):
+    for m in measurements:
+        w = data["_measurement"] == m
+        if not w.any():  # there might be no data for set measurement
+            continue
+        df = data[w]
         for p in params:
             if p in df._field.values:
-                d["Wo"].append(name)  # df["_measurement"][0])
+                d["Wo"].append(m)
                 d["Wann"].append(df["_time"].iloc[0].strftime("%d.%m.%Y %H:%M:%S"))
                 d["Was"].append(p)
                 d["Wert"].append(
@@ -229,6 +244,7 @@ def update_table(n_clicks):
                     % (df["_value"][df["_field"] == p]).iloc[0]
                 )
     df = pd.DataFrame(d)
+
     container = (
         dash_table.DataTable(
             data=df.to_dict("records"),

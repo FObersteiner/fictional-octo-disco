@@ -96,7 +96,6 @@ func main() {
 		if err != nil {
 			log.Error().Err(err)
 		}
-		fmt.Println(addr)
 		s := Source{Name: src.Name, ID: src.ID, Address: src.Address,
 			UDPaddress: addr, Last_contact: time.Now().Add(-INTERVAL)}
 		sources = append(sources, s)
