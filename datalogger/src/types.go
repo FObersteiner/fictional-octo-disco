@@ -8,25 +8,25 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
-	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	LogLevel     string   `yaml:"Log_Level"`     // zerolog logger level
-	DataSavePath string   `yaml:"Path_Data_Log"` // where to save csvs
-	Sources      []Source `yaml:"Sources"`
-	LogToDB      bool     `yaml:"Log_to_DB"`
-	DBtoken      string   `yaml:"DB_Token"`
-	DBorg        string   `yaml:"DB_Org"`
-	DBurl        string   `yaml:"DB_Url"`
-	DBbucket     string   `yaml:"DB_Bucket"`
+	LogLevel     string   `toml:"Log_Level"`     // zerolog logger level
+	DataSavePath string   `toml:"Path_Data_Log"` // where to save csvs
+	Sources      []Source `toml:"Sources"`
+	LogToDB      bool     `toml:"Log_to_DB"`
+	DBtoken      string   `toml:"DB_Token"`
+	DBorg        string   `toml:"DB_Org"`
+	DBurl        string   `toml:"DB_Url"`
+	DBbucket     string   `toml:"DB_Bucket"`
 }
 
 func (c *Config) Load(cfgPath string) error {
 	if cfgPath == "" {
-		cfgPath += "./cfg/config.yml"
+		cfgPath += "./cfg/config.toml"
 	}
 
 	cfgPath = path.Clean(cfgPath)
@@ -34,7 +34,7 @@ func (c *Config) Load(cfgPath string) error {
 	if err != nil {
 		return err
 	}
-	err = yaml.Unmarshal(b, &c)
+	err = toml.Unmarshal(b, &c)
 	if err != nil {
 		return err
 	}
