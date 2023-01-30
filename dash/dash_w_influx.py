@@ -1,10 +1,15 @@
 import math
+
+from time import monotonic as ticker
+
 import warnings
 from influxdb_client.client.warnings import MissingPivotFunction
 
 warnings.simplefilter("ignore", MissingPivotFunction)
 
 import influxdb_client
+
+
 from dash import Dash, html, dcc, Input, Output, dash_table
 
 import pandas as pd
@@ -143,13 +148,20 @@ def display_time_series(n, timeframe):
     # pivot does not work correctly for more than two parameters
     # bug in 'query_data_frame' ?
 
+    t = ticker()
     data = client.query_api().query_data_frame(org=org, query=query)
+    print(f"query df: {ticker()-t:.4f} s")
+
+    t = ticker()
     data["_time"] = pd.to_datetime(data["_time"]).dt.tz_convert("Europe/Berlin")
+    print(f"tz_convert: {ticker()-t:.4f} s")
 
+    t = ticker()
     ranges = get_ranges(data, params)
+    print(f"calculate plot ranges: {ticker()-t:.4f} s")
 
+    t = ticker()
     figs = []
-
     for p in params:  # loop parameters
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -199,6 +211,7 @@ def display_time_series(n, timeframe):
         figs.append(fig)
 
     figs[-1].update_xaxes(title_text="<b>Zeit</b>")
+    print(f"make plots: {ticker()-t:.4f} s")
 
     return figs
 
