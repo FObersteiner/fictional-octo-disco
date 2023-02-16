@@ -67,7 +67,7 @@ app.layout = html.Div(
                     id="timeframe",
                     options=[
                         {"label": "letzte Stunde", "value": "-1h"},
-                        {"label": "letzten 3 Stunden", "value": "-3h"},
+                        {"label": "6 Stunden zurueck", "value": "-6h"},
                         {"label": "letzter Tag", "value": "-1d"},
                         {"label": "letzte Woche", "value": "-1w"},
                     ],
@@ -163,7 +163,6 @@ def display_time_series(n, timeframe):
     t = ticker()
     figs = []
     for p in params:  # loop parameters
-
         fig = make_subplots(specs=[[{"secondary_y": True}]])
 
         for idx_meas, m in enumerate(measurements):
