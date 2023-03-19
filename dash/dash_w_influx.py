@@ -1,22 +1,14 @@
 import math
-
 from time import monotonic as ticker
-
 import warnings
-from influxdb_client.client.warnings import MissingPivotFunction
-
-
-import influxdb_client
-
 
 from dash import Dash, html, dcc, Input, Output, dash_table
-
+import influxdb_client
+from influxdb_client.client.warnings import MissingPivotFunction
 import pandas as pd
-import tomli as toml
-
 import plotly.express as px
-
 from plotly.subplots import make_subplots
+import tomli as toml
 
 
 warnings.simplefilter("ignore", MissingPivotFunction)
