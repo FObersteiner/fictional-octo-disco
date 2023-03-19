@@ -5,7 +5,6 @@ from time import monotonic as ticker
 import warnings
 from influxdb_client.client.warnings import MissingPivotFunction
 
-warnings.simplefilter("ignore", MissingPivotFunction)
 
 import influxdb_client
 
@@ -19,6 +18,8 @@ import plotly.express as px
 
 from plotly.subplots import make_subplots
 
+
+warnings.simplefilter("ignore", MissingPivotFunction)
 
 with open("config.toml", "rb") as fp:
     cfg = toml.load(fp)
