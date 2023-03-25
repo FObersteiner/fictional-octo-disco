@@ -141,21 +141,24 @@ def display_time_series(n, timeframe):
     # pivot does not work correctly for more than two parameters
     # bug in 'query_data_frame' ?
 
-    t = ticker()
+    # t = ticker()
     data = client.query_api().query_data_frame(org=org, query=query)
-    print(f"query df: {ticker()-t:.4f} s")
+    data = pd.concat(data)
+    # print(f"query df: {ticker()-t:.4f} s")
 
-    t = ticker()
-    data["_time"] = pd.to_datetime(data["_time"]).dt.tz_convert("Europe/Berlin")
-    print(f"tz_convert: {ticker()-t:.4f} s")
+    # t = ticker()
+    data["_time"] = data["_time"].dt.tz_convert("Europe/Berlin")
+    # print(f"tz_convert: {ticker()-t:.4f} s")
 
-    t = ticker()
+    # t = ticker()
     ranges = get_ranges(data, params)
-    print(f"calculate plot ranges: {ticker()-t:.4f} s")
+    # print(f"calculate plot ranges: {ticker()-t:.4f} s")
 
     t = ticker()
     figs = []
+
     for p in params:  # loop parameters
+
         fig = make_subplots(specs=[[{"secondary_y": True}]])
 
         for idx_meas, m in enumerate(measurements):
@@ -231,7 +234,10 @@ def update_table(_):
     # |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")"""
 
     data = client.query_api().query_data_frame(org=org, query=query)
-    data["_time"] = pd.to_datetime(data["_time"]).dt.tz_convert("Europe/Berlin")
+    data = pd.concat(data)
+
+    data["_time"] = data["_time"].dt.tz_convert("Europe/Berlin")
+
 
     d = {"Wo": [], "Wann": [], "Was": [], "Wert": []}
     for m in measurements:
@@ -287,3 +293,5 @@ if __name__ == "__main__":
     app.run_server(
         host=cfg["app"]["host"], port=cfg["app"]["port"], debug=cfg["app"]["debug"]
     )
+
+# scp -r /home/floo/Code/Mixed/fictional-octo-disco/dash/ floo@192.168.0.107:/home/floo/Documents/

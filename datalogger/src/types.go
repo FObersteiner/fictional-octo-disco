@@ -48,9 +48,9 @@ func NewCfg() *Config {
 // source represents one micro-controller that should be queried
 // for sensor data.
 type Source struct {
-	ID           uint8  `yaml:"ID"`
-	Name         string `yaml:"Name"`
-	Address      string `yaml:"Address"`
+	ID           uint8  `toml:"ID"`
+	Name         string `toml:"Name"`
+	Address      string `toml:"Address"`
 	UDPaddress   *net.UDPAddr
 	Last_contact time.Time
 }
@@ -75,6 +75,7 @@ type message struct {
 	RelHum      float32 `json:"rH"`
 	AbsHum      float32 `json:"aH"`
 	Pressure    float32 `json:"p"`
+	CO2         int32   `json:"CO2"`
 }
 
 func NewMsg() *message {
@@ -92,6 +93,9 @@ func (m *message) String() string {
 	if m.Pressure > 500. {
 		repr += fmt.Sprintf(", Pressure: %.2f hPa", m.Pressure)
 	}
+	if m.CO2 > 300 {
+		repr += fmt.Sprintf(", CO2: %d ppm", m.CO2)
+	}
 	return repr
 }
 
@@ -105,6 +109,9 @@ func (m *message) StringShort() string {
 	if m.Pressure > 500. {
 		repr += fmt.Sprintf(", %.2f hPa", m.Pressure)
 	}
+	if m.CO2 > 300 {
+		repr += fmt.Sprintf(", %d ppm CO2", m.CO2)
+	}
 	return repr
 }
 
@@ -116,25 +123,29 @@ func (m *message) StringCsv(sep string) string {
 	repr += fmt.Sprintf("%.3f%v", m.Temperature, sep)
 	repr += fmt.Sprintf("%.3f%v", m.RelHum, sep)
 	repr += fmt.Sprintf("%.3f%v", m.AbsHum, sep)
-	repr += fmt.Sprintf("%.3f", m.Pressure)
+	repr += fmt.Sprintf("%.3f%v", m.Pressure, sep)
+	repr += fmt.Sprintf("%d", m.CO2)
 	return repr + "\n"
 }
 
 // CsvHeader builds a csv header line for logging messages
 func (m *message) CsvHeader(sep string) string {
-	return strings.Join([]string{"datetime", "id", "name", "temp_degC", "relHum_%", "absHum_gkg", "pres_hPa"}, sep) + "\n"
+	return strings.Join([]string{"datetime", "id", "name", "temp_degC", "relHum_%", "absHum_gkg", "pres_hPa", "CO2_ppm"}, sep) + "\n"
 }
 
 // ToInfluxPoint converts message to influxDB point
 func (m *message) ToInfluxPoint() *write.Point {
 	p := influxdb2.NewPointWithMeasurement(m.Name).
+		SetTime(m.Timestamp).
 		AddTag("id", fmt.Sprintf("%d", m.ID)).
 		AddField("T", m.Temperature).
 		AddField("rH", m.RelHum).
-		AddField("aH", m.AbsHum).
-		SetTime(m.Timestamp)
+		AddField("aH", m.AbsHum)
 	if m.Pressure > 250. {
 		p.AddField("p", m.Pressure)
+	}
+	if m.CO2 > 300 {
+		p.AddField("CO2", m.CO2)
 	}
 	return p
 }
