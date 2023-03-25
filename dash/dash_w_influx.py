@@ -36,8 +36,8 @@ app.layout = html.Div(
     children=[
         html.Div(
             [
-                html.H1(children="Mehr Daten !"),
-                html.Label("Letzte Werte:"),
+                html.H2(children="Mehr Daten !"),
+                # html.Label("Letzte Werte:"),
                 html.Div(id="output_table", children=[]),
                 html.Button(
                     "Tabelle akualisieren",
