@@ -158,7 +158,6 @@ def display_time_series(n, timeframe):
     figs = []
 
     for p in params:  # loop parameters
-
         fig = make_subplots(specs=[[{"secondary_y": True}]])
 
         for idx_meas, m in enumerate(measurements):
@@ -234,10 +233,11 @@ def update_table(_):
     # |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")"""
 
     data = client.query_api().query_data_frame(org=org, query=query)
-    data = pd.concat(data)
+    # sometimes, this is returned as a list of dfs ?!
+    if isinstance(data, list):
+        data = pd.concat(data)
 
     data["_time"] = data["_time"].dt.tz_convert("Europe/Berlin")
-
 
     d = {"Wo": [], "Wann": [], "Was": [], "Wert": []}
     for m in measurements:
