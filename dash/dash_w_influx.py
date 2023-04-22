@@ -143,7 +143,8 @@ def display_time_series(n, timeframe):
 
     # t = ticker()
     data = client.query_api().query_data_frame(org=org, query=query)
-    data = pd.concat(data)
+    if isinstance(data, list):
+        data = pd.concat(data)
     # print(f"query df: {ticker()-t:.4f} s")
 
     # t = ticker()
