@@ -20,8 +20,27 @@ import (
 var log = zerolog.New(nil)
 var logFileName = fmt.Sprintf("sensorlogger_%v.log", time.Now().UTC().Format("20060102T150405Z"))
 
+// GetCwd tries to obtain the current working directory of the calling executable.
+func GetCwd() (string, error) {
+	// try to use the executable's path by default
+	src, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+
+	// if os.Executable() appears to return a tmp build path, fall back to os.Getwd
+	if strings.Contains(src, "go-build") {
+		src, err = os.Getwd()
+		if err != nil {
+			return "", err
+		}
+		return src, nil
+	}
+	return filepath.Dir(src), nil
+}
+
 func init() {
-	dst, err := os.Getwd()
+	dst, err := GetCwd()
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +126,7 @@ func main() {
 	var msgCsvToDb = make(chan message)
 	var sigDone = make(chan struct{})
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, _ := context.WithCancel(context.Background())
 
 	go dataCollector(ctx, sources, data, sigDone)
 	go dataParser(ctx, data, msgParserToCsv, sigDone)
@@ -118,7 +137,8 @@ func main() {
 	fmt.Scanln()
 
 	// stop goroutines via context and make sure they're closed before main stops
-	cancel()
+	// cancel()
+
 	<-sigDone // data collector
 	<-sigDone // msg parser
 	<-sigDone // csv logger

@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -26,7 +27,12 @@ type Config struct {
 
 func (c *Config) Load(cfgPath string) error {
 	if cfgPath == "" {
-		cfgPath += "./cfg/config.toml"
+		dst, err := GetCwd()
+		if err != nil {
+			return err
+		}
+		cfgPath = filepath.Join(dst, "cfg", "config.toml")
+		log.Info().Msgf("load config %v", cfgPath)
 	}
 
 	cfgPath = path.Clean(cfgPath)
