@@ -41,3 +41,6 @@ TESTDATA/
 db.csv
 log/
 *.log
+
+# data
+/data
