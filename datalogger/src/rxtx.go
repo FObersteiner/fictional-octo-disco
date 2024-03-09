@@ -8,7 +8,8 @@ import (
 
 // dataCollector pings Arduinos and forwards data if received
 func dataCollector(ctx context.Context, devices []Source, data chan<- []byte, sigDone chan<- struct{}) {
-	var buf = make([]byte, 512)
+	log.Debug().Msg("start data collector")
+	buf := make([]byte, 512)
 
 	// set up UDP socket
 	// actually, this is only necessary if we want to send from a specific address/port

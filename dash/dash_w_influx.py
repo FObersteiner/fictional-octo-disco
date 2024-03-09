@@ -1,5 +1,11 @@
+# scp -r /home/floo/Code/Mixed/fictional-octo-disco/dash/ floo@192.168.178.107:/home/floo/Documents/
+#
+# pip install --upgrade pip setuptools dash influxdb_client pandas plotly tomli
+#
 import math
 from time import monotonic as ticker
+from pathlib import Path
+import platform
 import warnings
 
 from dash import Dash, html, dcc, Input, Output, dash_table
@@ -13,8 +19,16 @@ import tomli as toml
 
 warnings.simplefilter("ignore", MissingPivotFunction)
 
-with open("config.toml", "rb") as fp:
+wd = Path(__file__).parent
+cfg_src = wd / "config.toml"
+
+print(f"attempting to load config from '{cfg_src.resolve().as_posix()}")
+with open(cfg_src, "rb") as fp:
     cfg = toml.load(fp)
+
+if platform.machine() == "x86_64":  # we're on the dev machine...
+    cfg["app"]["host"] = "127.0.0.1"
+
 
 try:
     colors = getattr(px.colors.qualitative, cfg["app"]["colors"])
@@ -73,7 +87,7 @@ app.layout = html.Div(
 )
 
 # add the graphs, one for each specified parameter
-app.layout.children += [html.Div([dcc.Graph(id=f"plot_{p}")]) for p in params]
+app.layout.children += [html.Div([dcc.Graph(id=f"plot_{p}")]) for p in params]  # type: ignore
 
 
 def get_ranges(data, params):
@@ -125,7 +139,7 @@ def get_ranges(data, params):
     [Output(f"plot_{p}", "figure") for p in params],
     [Input("refresh_plot", "n_clicks"), Input("timeframe", "value")],
 )
-def display_time_series(n, timeframe):
+def display_time_series(_, timeframe):
     """Plots ?!"""
     meas_filter = (
         f'r["_measurement"] == "{measurements[0]}"'
@@ -249,11 +263,11 @@ def update_table(_):
         for p in params:
             if p in df._field.values:
                 d["Wo"].append(m)
-                d["Wann"].append(df["_time"].iloc[0].strftime("%d.%m.%Y %H:%M:%S"))
+                d["Wann"].append(df["_time"].iloc[0].strftime("%d.%m.%Y %H:%M:%S"))  # type: ignore
                 d["Was"].append(p)
                 d["Wert"].append(
                     f"%{cfg['unit_formats'][p]}"
-                    % (df["_value"][df["_field"] == p]).iloc[0]
+                    % (df["_value"][df["_field"] == p]).iloc[0]  # type: ignore
                 )
     df = pd.DataFrame(d)
 
@@ -294,5 +308,3 @@ if __name__ == "__main__":
     app.run_server(
         host=cfg["app"]["host"], port=cfg["app"]["port"], debug=cfg["app"]["debug"]
     )
-
-# scp -r /home/floo/Code/Mixed/fictional-octo-disco/dash/ floo@192.168.0.107:/home/floo/Documents/

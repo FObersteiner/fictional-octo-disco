@@ -1,84 +1,67 @@
-
 // wifi
+// use board = LOLIN(WEMOS) D1 mini Pro
 #include <SPI.h>
-#include <WiFiNINA.h>
+#include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include "arduino_secrets.h"
+
 // sensors
 #include <Wire.h>
 #include <Adafruit_AHTX0.h>
-#include <Adafruit_LPS2X.h>
 #include <Adafruit_Sensor.h>
 #include "datastructs.h"
 
 Adafruit_AHTX0 aht;
-Adafruit_LPS22 lps;
 
-int status = WL_IDLE_STATUS;
-char ssid[] = SECRET_SSID;  // login info from arduino_secrets.h
+int status = WL_DISCONNECTED;
+char ssid[] = SECRET_SSID; // login info from arduino_secrets.h
 char pass[] = SECRET_PASS;
 
-int last_ip_octet = 58;
-IPAddress ip(192, 168, 0, last_ip_octet);  // fix IP address
-unsigned int udpPort = 16083;              // port for UDP communication
+int last_ip_octet = 111; // SZ
+IPAddress local_IP(192, 168, 178, last_ip_octet); // fix IP address
+IPAddress gateway(192, 168, 178, 1);
+IPAddress subnet(255, 255, 255, 0);
 
-char packetBuffer[128];  // buffer to hold incoming packet
-char replyBuffer[128];   // buffer for the string to send back
+unsigned int udpPort = 16083; // port for UDP communication
+
+char packetBuffer[128]; // buffer to hold incoming packet
+char replyBuffer[128]; // buffer for the string to send back
 WiFiUDP Udp;
 
 
 // setup checks that the sensors are there and connects to specified WiFi
 void setup() {
   // pinMode(LED_BUILTIN, OUTPUT);
-  // digitalWrite(LED_BUILTIN, LOW);
+  // digitalWrite(LED_BUILTIN, LOW); // keep LED off
+
   // ~~~~~ Serial Coms and Sensors ~~~~~
   Serial.begin(115200);
 
-  Serial.println("Connecting to AHT20 + LPS22 sensors");
-  if (!aht.begin()) {
+  Serial.println("Connecting to AHT20 sensor");
+  if (! aht.begin()) {
     Serial.println("Could not find AHT - Check wiring");
-    while (1) delay(1000);
+    while (1) delay(10);
   }
   Serial.println("AHT20 found");
 
-  if (!lps.begin_I2C()) {
-    Serial.println("Could not find LPS - Check wiring");
-    while (1) {
-      delay(1000);
-    }
-  }
-  Serial.println("LPS22 found");
-  lps.setDataRate(LPS22_RATE_1_HZ);
-
   // ~~~~~ WIFI ~~~~~
-  if (WiFi.status() == WL_NO_MODULE) {
-    Serial.println("Communication with WiFi module failed!");
-    // don't continue
-    while (true)
-      ;
+  // Configures static IP address
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("STA Failed to configure");
   }
-
-  String fv = WiFi.firmwareVersion();
-  if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
-    Serial.println("Please upgrade the firmware");
-  }
-
-  // set IP and attempt to connect to WiFi network:
-  WiFi.config(ip);
-  // WiFi.setHostname("OutsideArduino");
 
   while (status != WL_CONNECTED) {
     Serial.print("Connecting to SSID: ");
     Serial.println(ssid);
     status = WiFi.begin(ssid, pass);
-    delay(1000);
+    delay(10000);
   }
 
   Serial.println("Connected to WiFi");
   printWifiStatus();
 
   Udp.begin(udpPort);
-  Serial.println("\nUDP server ready...");
+  Serial.println("UDP server ready...");
   // digitalWrite(LED_BUILTIN, HIGH);
 }
 
@@ -121,10 +104,10 @@ void loop() {
     Serial.println(json);
     jsonLen = json.length();
     // clear replyBuffer
-    for (int i = 0; i < sizeof(replyBuffer); ++i)
+    for ( int i = 0; i < sizeof(replyBuffer);  ++i )
       replyBuffer[i] = (char)0;
     // fill replyBuffer with JSON
-    for (int i = 0; i < jsonLen; i++) {
+    for (int i = 0; i < jsonLen; i++ ) {
       replyBuffer[i] = json[i];
     }
 
@@ -136,26 +119,22 @@ void loop() {
   }
 
   delay(100);
+
 }
 
 
 // refreshSensorData - a function to refresh content of the sensor data structure
 void refreshSensorData() {
-  // rH sensor
+
   sensors_event_t humidity, temp1;
   aht.getEvent(&humidity, &temp1);
-  // p sensor
-  sensors_event_t pressure, temp2;
-  lps.getEvent(&pressure, &temp2);
 
   s.T_aht20 = temp1.temperature;
   s.rH = humidity.relative_humidity;
 
-  s.T_lps22 = temp2.temperature;
-  s.p = pressure.pressure;
-
   // calculate abs. humidity based on Magnus-Tetens equation
   s.aH = (6.1094 * exp((17.625 * s.T_aht20) / (s.T_aht20 + 243.5)) * s.rH * 2.1674) / (273.15 + s.T_aht20);
+
 }
 
 
@@ -164,8 +143,7 @@ String makeJSON() {
   String out = "{\"ID\": " + String(last_ip_octet) + ", ";
   out += "\"T\": " + String(s.T_aht20, 5) + ", ";
   out += "\"rH\": " + String(s.rH, 5) + ", ";
-  out += "\"aH\": " + String(s.aH, 5) + ", ";
-  out += "\"p\": " + String(s.p, 5) + "}";
+  out += "\"aH\": " + String(s.aH, 5) + "}";
   return out;
 }
 

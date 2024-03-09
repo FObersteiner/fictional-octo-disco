@@ -17,8 +17,10 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var log = zerolog.New(nil)
-var logFileName = fmt.Sprintf("sensorlogger_%v.log", time.Now().UTC().Format("20060102T150405Z"))
+var (
+	log         = zerolog.New(nil)
+	logFileName = fmt.Sprintf("sensorlogger_%v.log", time.Now().UTC().Format("20060102T150405Z"))
+)
 
 // GetCwd tries to obtain the current working directory of the calling executable.
 func GetCwd() (string, error) {
@@ -70,12 +72,16 @@ func init() {
 	}
 }
 
-const INTERVAL = time.Duration(time.Minute)
-const CHECKINTERVAL = time.Duration(time.Second)
-const CSVSEP = ";"
+const (
+	INTERVAL      = time.Duration(time.Minute)
+	CHECKINTERVAL = time.Duration(time.Second)
+	CSVSEP        = ";"
+)
 
-var cfg = NewCfg()
-var sources = Sources{}
+var (
+	cfg     = NewCfg()
+	sources = Sources{}
+)
 
 func main() {
 	// can supply path to config via cmd line arg
@@ -96,7 +102,7 @@ func main() {
 	}
 
 	log.Info().Msg(cfg.DataSavePath)
-	var logpath = path.Clean(cfg.DataSavePath)
+	logpath := path.Clean(cfg.DataSavePath)
 	if strings.HasPrefix(logpath, "~/") {
 		usr, _ := user.Current()
 		dir := usr.HomeDir
@@ -115,18 +121,21 @@ func main() {
 		if err != nil {
 			log.Error().Err(err)
 		}
-		s := Source{Name: src.Name, ID: src.ID, Address: src.Address,
-			UDPaddress: addr, Last_contact: time.Now().Add(-INTERVAL)}
+		s := Source{
+			Name: src.Name, ID: src.ID, Address: src.Address,
+			UDPaddress: addr, Last_contact: time.Now().Add(-INTERVAL),
+		}
 		sources = append(sources, s)
 	}
 
 	// start data collector and handlers
-	var data = make(chan []byte)
-	var msgParserToCsv = make(chan message)
-	var msgCsvToDb = make(chan message)
-	var sigDone = make(chan struct{})
+	data := make(chan []byte)
+	msgParserToCsv := make(chan message)
+	msgCsvToDb := make(chan message)
+	sigDone := make(chan struct{})
 
-	ctx, _ := context.WithCancel(context.Background())
+	// ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Context(context.Background())
 
 	go dataCollector(ctx, sources, data, sigDone)
 	go dataParser(ctx, data, msgParserToCsv, sigDone)
@@ -137,7 +146,7 @@ func main() {
 	fmt.Scanln()
 
 	// stop goroutines via context and make sure they're closed before main stops
-	// cancel()
+	// sjflasdfjsdal ftexie cancel()
 
 	<-sigDone // data collector
 	<-sigDone // msg parser
@@ -148,9 +157,8 @@ func main() {
 }
 
 // for rpi:
-// env GOOS=linux GOARCH=arm GOARM=5 go build -o /home/va6504/Code/Mixed/fictional-octo-disco/datalogger/bin/datalogger_rpi .
+// cp /home/floo/Code/Mixed/fictional-octo-disco/datalogger/src/cfg/config.toml /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/cfg/config.toml
 // env GOOS=linux GOARCH=arm GOARM=5 go build -o /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/datalogger_rpi .
 
 // to rpi:
-// scp -r /home/va6504/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.0.107:/home/floo/Documents/Go/datalogger
-// scp -r /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.0.107:/home/floo/Documents/Go/datalogger
+// scp -r /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.178.107:/home/floo/Documents/Go/datalogger

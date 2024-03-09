@@ -1,23 +1,33 @@
-
 // wifi
 #include <SPI.h>
 #include <WiFiNINA.h>
 #include <WiFiUdp.h>
 #include "arduino_secrets.h"
+ 
 // sensors
 #include <Wire.h>
 #include <Adafruit_AHTX0.h>
 #include <Adafruit_Sensor.h>
 #include "datastructs.h"
+#include "wiring_private.h"
+#include "MHZ19.h"  
 
+Uart mySerial (&sercom0, 5, 6, SERCOM_RX_PAD_1, UART_TX_PAD_0);
+// Attach the interrupt handler to the SERCOM
+void SERCOM0_Handler()
+{
+    mySerial.IrqHandler();
+}
+
+MHZ19 myMHZ19;
 Adafruit_AHTX0 aht;
 
 int status = WL_DISCONNECTED;
-char ssid[] = SECRET_SSID;  // login info from arduino_secrets.h
+char ssid[] = SECRET_SSID; 
 char pass[] = SECRET_PASS;
 
-int last_ip_octet = 59;
-IPAddress ip(192, 168, 0, last_ip_octet);  // fix IP address
+int last_ip_octet = 109; // AZ
+IPAddress ip(192, 168, 178, last_ip_octet);  // fix IP address
 unsigned int udpPort = 16083;              // port for UDP communication
 
 char packetBuffer[128];  // buffer to hold incoming packet
@@ -27,10 +37,16 @@ WiFiUDP Udp;
 
 // setup checks that the sensors are there and connects to specified WiFi
 void setup() {
+  // alternative serial com
+  pinPeripheral(5, PIO_SERCOM_ALT);
+  pinPeripheral(6, PIO_SERCOM_ALT);
   // pinMode(LED_BUILTIN, OUTPUT);
   // digitalWrite(LED_BUILTIN, LOW);
 
   // ~~~~~ Serial Coms and Sensors ~~~~~
+  mySerial.begin(9600);
+  myMHZ19.begin(mySerial);
+
   Serial.begin(115200);
 
   //  // remove for testing without USB:
@@ -145,6 +161,8 @@ void refreshSensorData() {
 
   // calculate abs. humidity based on Magnus-Tetens equation
   s.aH = (6.1094 * exp((17.625 * s.T_aht20) / (s.T_aht20 + 243.5)) * s.rH * 2.1674) / (273.15 + s.T_aht20);
+
+  s.CO2 = myMHZ19.getCO2();
 }
 
 
@@ -153,7 +171,8 @@ String makeJSON() {
   String out = "{\"ID\": " + String(last_ip_octet) + ", ";
   out += "\"T\": " + String(s.T_aht20, 5) + ", ";
   out += "\"rH\": " + String(s.rH, 5) + ", ";
-  out += "\"aH\": " + String(s.aH, 5) + "}";
+  out += "\"aH\": " + String(s.aH, 5) + ", ";
+  out += "\"CO2\": " + String(s.CO2) + "}";
   return out;
 }
 

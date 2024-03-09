@@ -1,11 +1,9 @@
-
 // wifi
 #include <SPI.h>
-#include <ESP8266WiFi.h>
-// use board = LOLIN(WEMOS) D1 mini Pro
-
+#include <WiFiNINA.h>
 #include <WiFiUdp.h>
 #include "arduino_secrets.h"
+
 // sensors
 #include <Wire.h>
 #include <Adafruit_AHTX0.h>
@@ -15,47 +13,60 @@
 Adafruit_AHTX0 aht;
 
 int status = WL_DISCONNECTED;
-char ssid[] = SECRET_SSID; // login info from arduino_secrets.h
+char ssid[] = SECRET_SSID;  // login info from arduino_secrets.h
 char pass[] = SECRET_PASS;
 
-int last_ip_octet = 74;
-IPAddress local_IP(192, 168, 0, last_ip_octet); // fix IP address
-IPAddress gateway(192, 168, 0, 1);
-IPAddress subnet(255, 255, 255, 0);
+int last_ip_octet = 109; // AZ
+IPAddress ip(192, 168, 178, last_ip_octet);  // fix IP address
+unsigned int udpPort = 16083;              // port for UDP communication
 
-unsigned int udpPort = 16083; // port for UDP communication
-
-char packetBuffer[128]; // buffer to hold incoming packet
-char replyBuffer[128]; // buffer for the string to send back
+char packetBuffer[128];  // buffer to hold incoming packet
+char replyBuffer[128];   // buffer for the string to send back
 WiFiUDP Udp;
 
 
 // setup checks that the sensors are there and connects to specified WiFi
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH); // LED off
+  // pinMode(LED_BUILTIN, OUTPUT);
+  // digitalWrite(LED_BUILTIN, LOW);
 
   // ~~~~~ Serial Coms and Sensors ~~~~~
   Serial.begin(115200);
 
+  //  // remove for testing without USB:
+  //  while (!Serial) {
+  //    ; // wait for serial port to connect. Needed for native USB port only
+  //  }
+
   Serial.println("Connecting to AHT20 sensor");
-  if (! aht.begin()) {
+  if (!aht.begin()) {
     Serial.println("Could not find AHT - Check wiring");
-    while (1) delay(10);
+    while (1) delay(1000);
   }
   Serial.println("AHT20 found");
 
   // ~~~~~ WIFI ~~~~~
-  // Configures static IP address
-  if (!WiFi.config(local_IP, gateway, subnet)) {
-    Serial.println("STA Failed to configure");
+  if (WiFi.status() == WL_NO_MODULE) {
+    Serial.println("Communication with WiFi module failed!");
+    // don't continue
+    while (true)
+      ;
   }
+
+  String fv = WiFi.firmwareVersion();
+  if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
+    Serial.println("Please upgrade the firmware");
+  }
+
+  // set IP and attempt to connect to WiFi network:
+  WiFi.config(ip);
+  WiFi.setHostname("InsideArduino");
 
   while (status != WL_CONNECTED) {
     Serial.print("Connecting to SSID: ");
     Serial.println(ssid);
     status = WiFi.begin(ssid, pass);
-    delay(10000);
+    delay(1000);
   }
 
   Serial.println("Connected to WiFi");
@@ -63,7 +74,7 @@ void setup() {
 
   Udp.begin(udpPort);
   Serial.println("UDP server ready...");
-  digitalWrite(LED_BUILTIN, LOW); // low == led on
+  // digitalWrite(LED_BUILTIN, HIGH);
 }
 
 
@@ -105,10 +116,10 @@ void loop() {
     Serial.println(json);
     jsonLen = json.length();
     // clear replyBuffer
-    for ( int i = 0; i < sizeof(replyBuffer);  ++i )
+    for (int i = 0; i < sizeof(replyBuffer); ++i)
       replyBuffer[i] = (char)0;
     // fill replyBuffer with JSON
-    for (int i = 0; i < jsonLen; i++ ) {
+    for (int i = 0; i < jsonLen; i++) {
       replyBuffer[i] = json[i];
     }
 
@@ -120,7 +131,6 @@ void loop() {
   }
 
   delay(100);
-
 }
 
 
@@ -135,7 +145,6 @@ void refreshSensorData() {
 
   // calculate abs. humidity based on Magnus-Tetens equation
   s.aH = (6.1094 * exp((17.625 * s.T_aht20) / (s.T_aht20 + 243.5)) * s.rH * 2.1674) / (273.15 + s.T_aht20);
-
 }
 
 

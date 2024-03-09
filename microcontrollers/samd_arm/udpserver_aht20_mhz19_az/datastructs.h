@@ -8,4 +8,6 @@ typedef struct {
 //  // pressure / lps22
 //  double T_lps22;
 //  double p;
+  // MH-Z19 CO2
+  int CO2;
 } SensorData;

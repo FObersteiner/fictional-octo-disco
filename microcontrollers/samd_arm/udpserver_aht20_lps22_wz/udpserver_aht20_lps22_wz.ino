@@ -1,33 +1,25 @@
-
 // wifi
 #include <SPI.h>
 #include <WiFiNINA.h>
 #include <WiFiUdp.h>
 #include "arduino_secrets.h"
+
 // sensors
 #include <Wire.h>
 #include <Adafruit_AHTX0.h>
+#include <Adafruit_LPS2X.h>
 #include <Adafruit_Sensor.h>
 #include "datastructs.h"
-#include "wiring_private.h"
-#include "MHZ19.h"  
 
-Uart mySerial (&sercom0, 5, 6, SERCOM_RX_PAD_1, UART_TX_PAD_0);
-// Attach the interrupt handler to the SERCOM
-void SERCOM0_Handler()
-{
-    mySerial.IrqHandler();
-}
-
-MHZ19 myMHZ19;
 Adafruit_AHTX0 aht;
+Adafruit_LPS22 lps;
 
-int status = WL_DISCONNECTED;
+int status = WL_IDLE_STATUS;
 char ssid[] = SECRET_SSID;  // login info from arduino_secrets.h
 char pass[] = SECRET_PASS;
 
-int last_ip_octet = 59;
-IPAddress ip(192, 168, 0, last_ip_octet);  // fix IP address
+int last_ip_octet = 108; // WZ
+IPAddress ip(192, 168, 178, last_ip_octet);  // fix IP address
 unsigned int udpPort = 16083;              // port for UDP communication
 
 char packetBuffer[128];  // buffer to hold incoming packet
@@ -37,29 +29,26 @@ WiFiUDP Udp;
 
 // setup checks that the sensors are there and connects to specified WiFi
 void setup() {
-  // alternative serial com
-  pinPeripheral(5, PIO_SERCOM_ALT);
-  pinPeripheral(6, PIO_SERCOM_ALT);
   // pinMode(LED_BUILTIN, OUTPUT);
   // digitalWrite(LED_BUILTIN, LOW);
-
   // ~~~~~ Serial Coms and Sensors ~~~~~
-  mySerial.begin(9600);
-  myMHZ19.begin(mySerial);
-
   Serial.begin(115200);
 
-  //  // remove for testing without USB:
-  //  while (!Serial) {
-  //    ; // wait for serial port to connect. Needed for native USB port only
-  //  }
-
-  Serial.println("Connecting to AHT20 sensor");
+  Serial.println("Connecting to AHT20 + LPS22 sensors");
   if (!aht.begin()) {
     Serial.println("Could not find AHT - Check wiring");
     while (1) delay(1000);
   }
   Serial.println("AHT20 found");
+
+  if (!lps.begin_I2C()) {
+    Serial.println("Could not find LPS - Check wiring");
+    while (1) {
+      delay(1000);
+    }
+  }
+  Serial.println("LPS22 found");
+  lps.setDataRate(LPS22_RATE_1_HZ);
 
   // ~~~~~ WIFI ~~~~~
   if (WiFi.status() == WL_NO_MODULE) {
@@ -76,7 +65,7 @@ void setup() {
 
   // set IP and attempt to connect to WiFi network:
   WiFi.config(ip);
-  WiFi.setHostname("InsideArduino");
+  // WiFi.setHostname("OutsideArduino");
 
   while (status != WL_CONNECTED) {
     Serial.print("Connecting to SSID: ");
@@ -89,7 +78,7 @@ void setup() {
   printWifiStatus();
 
   Udp.begin(udpPort);
-  Serial.println("UDP server ready...");
+  Serial.println("\nUDP server ready...");
   // digitalWrite(LED_BUILTIN, HIGH);
 }
 
@@ -152,17 +141,21 @@ void loop() {
 
 // refreshSensorData - a function to refresh content of the sensor data structure
 void refreshSensorData() {
-
+  // rH sensor
   sensors_event_t humidity, temp1;
   aht.getEvent(&humidity, &temp1);
+  // p sensor
+  sensors_event_t pressure, temp2;
+  lps.getEvent(&pressure, &temp2);
 
   s.T_aht20 = temp1.temperature;
   s.rH = humidity.relative_humidity;
 
+  s.T_lps22 = temp2.temperature;
+  s.p = pressure.pressure;
+
   // calculate abs. humidity based on Magnus-Tetens equation
   s.aH = (6.1094 * exp((17.625 * s.T_aht20) / (s.T_aht20 + 243.5)) * s.rH * 2.1674) / (273.15 + s.T_aht20);
-
-  s.CO2 = myMHZ19.getCO2();
 }
 
 
@@ -172,7 +165,7 @@ String makeJSON() {
   out += "\"T\": " + String(s.T_aht20, 5) + ", ";
   out += "\"rH\": " + String(s.rH, 5) + ", ";
   out += "\"aH\": " + String(s.aH, 5) + ", ";
-  out += "\"CO2\": " + String(s.CO2) + "}";
+  out += "\"p\": " + String(s.p, 5) + "}";
   return out;
 }
 

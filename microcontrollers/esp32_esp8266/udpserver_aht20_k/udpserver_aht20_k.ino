@@ -1,9 +1,10 @@
-
 // wifi
+// use board = LOLIN(WEMOS) D1 mini Pro
 #include <SPI.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include "arduino_secrets.h"
+
 // sensors
 #include <Wire.h>
 #include <Adafruit_AHTX0.h>
@@ -16,9 +17,9 @@ int status = WL_DISCONNECTED;
 char ssid[] = SECRET_SSID; // login info from arduino_secrets.h
 char pass[] = SECRET_PASS;
 
-int last_ip_octet = 75;
-IPAddress local_IP(192, 168, 0, last_ip_octet); // fix IP address
-IPAddress gateway(192, 168, 0, 1);
+int last_ip_octet = 110; // Keller
+IPAddress local_IP(192, 168, 178, last_ip_octet); // fix IP address
+IPAddress gateway(192, 168, 178, 1);
 IPAddress subnet(255, 255, 255, 0);
 
 unsigned int udpPort = 16083; // port for UDP communication
@@ -30,8 +31,8 @@ WiFiUDP Udp;
 
 // setup checks that the sensors are there and connects to specified WiFi
 void setup() {
-  // pinMode(LED_BUILTIN, OUTPUT);
-  // digitalWrite(LED_BUILTIN, LOW); // keep LED off
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH); // LED off
 
   // ~~~~~ Serial Coms and Sensors ~~~~~
   Serial.begin(115200);
@@ -61,7 +62,7 @@ void setup() {
 
   Udp.begin(udpPort);
   Serial.println("UDP server ready...");
-  // digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(LED_BUILTIN, LOW); // low == led on
 }
 
 

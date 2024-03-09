@@ -45,6 +45,7 @@ func PrependDate(t *time.Time, s string) string {
 // dataParser receives messsages from the dataCollector.
 // Parses the JSON to message type and adds timestamp
 func dataParser(ctx context.Context, data <-chan []byte, msgOut chan<- message, sigDone chan<- struct{}) {
+	log.Debug().Msg("start data parser")
 	for {
 		select {
 		case recv := <-data:
@@ -97,7 +98,9 @@ func makeLogfile(logpath string, now *time.Time) (*os.File, error) {
 // handleCSVlog logs parsed messages to a csv table.
 // Forwards the data to database logger
 func handleCSVlog(ctx context.Context, logpath string,
-	msgIn <-chan message, msgOut chan<- message, sigDone chan<- struct{}) {
+	msgIn <-chan message, msgOut chan<- message, sigDone chan<- struct{},
+) {
+	log.Debug().Msg("start csv log handler")
 	now := time.Now().UTC()
 	f, fileErr := makeLogfile(logpath, &now)
 	for {
@@ -134,6 +137,7 @@ func handleCSVlog(ctx context.Context, logpath string,
 
 // handleDBupload sends data to the database
 func handleDBupload(ctx context.Context, msgIn <-chan message, sigDone chan<- struct{}) {
+	log.Debug().Msg("start db uploader")
 	if !cfg.LogToDB {
 		log.Info().Msg("disabled: Logging to influxDB")
 		sigDone <- struct{}{} // will wait here since main won't read from sigDone until stopped

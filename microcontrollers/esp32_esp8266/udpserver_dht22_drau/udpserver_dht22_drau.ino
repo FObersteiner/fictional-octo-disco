@@ -1,9 +1,9 @@
 #include "WiFi.h"
 #include "arduino_secrets.h"
-// #include "AsyncUDP.h"
-// AsyncUDP udp;
 #include <WiFiUdp.h>
 WiFiUDP Udp;
+
+// NodeMCU-32S
 
 #include "datastructs.h"
 #include "DHT.h"
@@ -15,10 +15,11 @@ int status = WL_DISCONNECTED;
 char ssid[] = SECRET_SSID; // login info from arduino_secrets.h
 char pass[] = SECRET_PASS;
 
-int last_ip_octet = 76;
-IPAddress ip(192, 168, 0, last_ip_octet); // fix IP address
-IPAddress gateway(192, 168, 0, 1);
+int last_ip_octet = 112; // Draussen
+IPAddress ip(192, 168, 178, last_ip_octet); // fix IP address
+IPAddress gateway(192, 168, 178, 1);
 IPAddress subnet(255, 255, 255, 0);
+
 unsigned int udpPort = 16083; // port for UDP communication
 
 char packetBuffer[128]; // buffer to hold incoming packet
