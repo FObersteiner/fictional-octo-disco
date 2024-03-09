@@ -1,3 +1,9 @@
+// for rpi:
+// cp /home/floo/Code/Mixed/fictional-octo-disco/datalogger/src/cfg/config.toml /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/cfg/config.toml
+// env GOOS=linux GOARCH=arm GOARM=5 go build -o /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/datalogger_rpi .
+//
+// to rpi:
+// scp -r /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.178.107:/home/floo/Documents/Go/datalogger
 package main
 
 import (
@@ -146,7 +152,7 @@ func main() {
 	fmt.Scanln()
 
 	// stop goroutines via context and make sure they're closed before main stops
-	// sjflasdfjsdal ftexie cancel()
+	// cancel()
 
 	<-sigDone // data collector
 	<-sigDone // msg parser
@@ -155,10 +161,3 @@ func main() {
 
 	log.Info().Msg("data collector graceful shutdown")
 }
-
-// for rpi:
-// cp /home/floo/Code/Mixed/fictional-octo-disco/datalogger/src/cfg/config.toml /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/cfg/config.toml
-// env GOOS=linux GOARCH=arm GOARM=5 go build -o /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/datalogger_rpi .
-
-// to rpi:
-// scp -r /home/floo/Code/Mixed/fictional-octo-disco/datalogger/bin/ floo@192.168.178.107:/home/floo/Documents/Go/datalogger
